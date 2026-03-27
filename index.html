@@ -1,0 +1,704 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+  <title>BodyMaker</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.5.0/Recharts.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.21.4/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0f1117; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    input, select, button { font-family: inherit; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #0f1117; }
+    ::-webkit-scrollbar-thumb { background: #2a2d3a; border-radius: 2px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useMemo } = React;
+    const { LineChart, Line, BarChart, Bar, ScatterChart, Scatter, XAxis, YAxis,
+            CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } = Recharts;
+
+    const GAS_URL = "https://script.google.com/macros/s/AKfycby-ruTFaJuN9Caqso-1JDWRvFk4Pfw09Pv_8P8Skmc0aabdYkhHJv7uIkGq62LrFQxO/exec";
+
+    async function gasGet(type) {
+      try {
+        const res = await fetch(GAS_URL, {
+          method: "POST",
+          headers: {"Content-Type": "text/plain"},
+          body: JSON.stringify({action: `get_${type}`}),
+        });
+        const json = await res.json();
+        return json.success ? json.data : [];
+      } catch(e) { return []; }
+    }
+
+    async function gasPost(type, data) {
+      try {
+        await fetch(GAS_URL, {
+          method: "POST",
+          headers: {"Content-Type": "text/plain"},
+          body: JSON.stringify({action: `save_${type}`, data}),
+        });
+      } catch(e) { console.error(e); }
+    }
+
+    const PRESET_EXERCISES = [
+      "ベンチプレス","スクワット","デッドリフト","ショルダープレス",
+      "ラットプルダウン","ベントオーバーロウ","ダンベルカール","トライセプスエクステ",
+      "レッグプレス","チンニング","ディップス","インクラインベンチ",
+    ];
+
+    const TRAIN_DATES = new Set([
+      "2026-01-01","2026-01-03","2026-01-07","2026-01-10","2026-01-11","2026-01-12",
+      "2026-01-15","2026-01-16","2026-01-18","2026-01-20","2026-01-21","2026-01-22",
+      "2026-01-25","2026-01-28","2026-01-31","2026-02-02","2026-02-03","2026-02-04",
+      "2026-02-06","2026-02-09","2026-02-10","2026-02-11","2026-02-12","2026-02-13",
+      "2026-02-15","2026-02-16","2026-02-17","2026-02-19","2026-02-21","2026-02-22",
+      "2026-02-23","2026-02-26","2026-02-27","2026-02-28","2026-03-01","2026-03-03",
+      "2026-03-04","2026-03-05","2026-03-06","2026-03-07","2026-03-08","2026-03-09",
+      "2026-03-11","2026-03-13","2026-03-14","2026-03-16","2026-03-17","2026-03-18",
+      "2026-03-20","2026-03-21","2026-03-22","2026-03-23","2026-03-24","2026-03-26",
+    ]);
+
+    const MACRO_SEED = [
+      {date:"2024-08-17",weight:73,cal:1838,p:110.3,c:237.4,f:53.5},
+      {date:"2024-08-18",weight:74.3,cal:2383,p:123.8,c:311,f:75.2},
+      {date:"2024-08-19",weight:74.4,cal:1830,p:144.5,c:175.1,f:67.6},
+      {date:"2024-08-20",weight:73.5,cal:1864,p:153.7,c:235.2,f:40.6},
+      {date:"2024-08-21",weight:73.1,cal:1872,p:133.8,c:224.8,f:55.3},
+      {date:"2024-08-22",weight:72.8,cal:1859,p:161.3,c:212.6,f:46.6},
+      {date:"2024-08-23",weight:72.8,cal:3185,p:207.1,c:306.5,f:139.9},
+      {date:"2024-08-24",weight:73.5,cal:1785,p:121.5,c:247.6,f:37.5},
+      {date:"2024-08-25",weight:72.9,cal:1820,p:134.6,c:196.8,f:60.9},
+      {date:"2024-08-26",weight:73.2,cal:2108,p:159,c:285.1,f:40.7},
+      {date:"2024-08-27",weight:72.7,cal:1947,p:150,c:259.6,f:34.4},
+      {date:"2024-08-28",weight:72.5,cal:2612,p:167.1,c:377.4,f:53.5},
+      {date:"2024-08-29",weight:73,cal:1996,p:144.2,c:306.2,f:27.7},
+      {date:"2024-08-30",weight:72.6,cal:2349,p:141.6,c:365.7,f:43},
+      {date:"2024-08-31",weight:72.7,cal:2100,p:138.9,c:269.6,f:56.3},
+      {date:"2024-09-01",weight:72.1,cal:3080,p:152.3,c:349.5,f:123.3},
+      {date:"2024-09-02",weight:72.7,cal:1885,p:145.8,c:222.4,f:55.4},
+      {date:"2024-09-03",weight:72.5,cal:2027,p:145.3,c:261.2,f:52.1},
+      {date:"2024-09-04",weight:72.4,cal:1769,p:93.3,c:272.5,f:42.8},
+      {date:"2024-09-05",weight:72.3,cal:2035,p:162.5,c:252.6,f:53.9},
+      {date:"2024-09-06",weight:72.5,cal:2697,p:183.7,c:276.5,f:80.2},
+      {date:"2024-09-07",weight:72.3,cal:2143,p:119.7,c:242.4,f:85.7},
+      {date:"2024-09-08",weight:71.7,cal:2409,p:136.8,c:302.1,f:84},
+      {date:"2024-09-09",weight:72.4,cal:1786,p:135.2,c:262.9,f:24.5},
+      {date:"2024-09-10",weight:72.3,cal:1952,p:122,c:277,f:38.6},
+      {date:"2024-09-11",weight:72.2,cal:2967,p:131.3,c:327.7,f:75.8},
+      {date:"2024-09-12",weight:73.2,cal:1485,p:113.9,c:188.7,f:36.8},
+      {date:"2024-09-13",weight:72,cal:1946,p:104.5,c:289.2,f:49.4},
+      {date:"2024-09-14",weight:71.6,cal:2063,p:160.1,c:230.6,f:64.7},
+      {date:"2024-09-15",weight:72.5,cal:2070,p:131.6,c:273.3,f:57},
+      {date:"2024-09-16",weight:72.1,cal:2628,p:201.1,c:278.3,f:89.2},
+      {date:"2024-09-17",weight:72.5,cal:1623,p:109.7,c:242.2,f:29.6},
+      {date:"2024-09-18",weight:72.1,cal:1927,p:104.2,c:286.8,f:52.4},
+      {date:"2024-09-19",weight:71.9,cal:1714,p:121.6,c:222.8,f:46.5},
+      {date:"2024-09-20",weight:71.4,cal:3230,p:138.9,c:303.2,f:94.1},
+      {date:"2024-09-21",weight:72,cal:2555,p:98.6,c:293.1,f:97.2},
+      {date:"2024-09-23",weight:72.1,cal:1916,p:114.6,c:237.5,f:62.6},
+      {date:"2024-09-24",weight:72.1,cal:1862,p:138,c:260.2,f:37.4},
+      {date:"2024-09-25",weight:72.2,cal:1418,p:104.6,c:218.3,f:21.9},
+      {date:"2024-09-26",weight:72.4,cal:2392,p:113.2,c:211.7,f:134.6},
+      {date:"2024-09-27",weight:72.1,cal:2261,p:98.1,c:205.1,f:79.9},
+      {date:"2024-09-28",weight:72.1,cal:2051,p:103.9,c:182.1,f:106.1},
+      {date:"2024-09-29",weight:71.9,cal:2167,p:119.4,c:325.6,f:52.7},
+      {date:"2024-09-30",weight:72.1,cal:1995,p:134.5,c:307.9,f:35.1},
+      {date:"2024-10-01",weight:72.5,cal:1797,p:114.2,c:276.9,f:36.8},
+      {date:"2024-10-02",weight:72,cal:2267,p:137.7,c:270.5,f:79.8},
+      {date:"2024-10-03",weight:71.8,cal:1767,p:97.7,c:243.8,f:48.5},
+      {date:"2024-10-04",weight:71.6,cal:2508,p:106.2,c:232.7,f:139.6},
+      {date:"2024-10-05",weight:72.3,cal:1653,p:115.5,c:265.7,f:21.3},
+      {date:"2024-10-06",weight:71.8,cal:2739,p:161.4,c:304,f:111.7},
+      {date:"2024-10-07",weight:72.5,cal:1415,p:110.3,c:165.4,f:40},
+      {date:"2024-10-08",weight:72.1,cal:1747,p:96.5,c:238.3,f:52.5},
+      {date:"2024-10-10",weight:71.6,cal:2305,p:113.6,c:596.4,f:49.2},
+      {date:"2024-10-11",weight:72.1,cal:2661,p:79.1,c:361,f:108.7},
+      {date:"2024-10-13",weight:72.5,cal:2842,p:141.3,c:348.1,f:108.1},
+      {date:"2024-10-14",weight:72.1,cal:2254,p:110.4,c:314.6,f:62.9},
+      {date:"2024-10-15",weight:72.5,cal:1980,p:143.5,c:271.3,f:42.5},
+      {date:"2024-10-17",weight:72.8,cal:1978,p:165.3,c:228.9,f:52.1},
+      {date:"2024-10-18",weight:72.1,cal:1894,p:109.4,c:250.8,f:42.2},
+      {date:"2024-10-19",weight:71.9,cal:2034,p:107.5,c:257.1,f:74.6},
+      {date:"2024-10-20",weight:71.5,cal:2382,p:151,c:212.2,f:114.4},
+      {date:"2024-10-21",weight:73,cal:1516,p:89.9,c:219.9,f:36.6},
+      {date:"2024-10-22",weight:72.1,cal:2080,p:137.4,c:273.2,f:56.9},
+      {date:"2024-10-23",weight:72.1,cal:1944,p:126.3,c:220.6,f:69.4},
+      {date:"2024-10-24",weight:71.6,cal:2250,p:104.3,c:358.6,f:53},
+      {date:"2024-10-25",weight:71.2,cal:1931,p:95.7,c:299.7,f:44},
+      {date:"2024-10-26",weight:71.2,cal:1741,p:80.4,c:239.2,f:58.7},
+      {date:"2024-10-27",weight:71.6,cal:1575,p:70,c:238.3,f:44.3},
+      {date:"2024-10-28",weight:72.5,cal:1694,p:109,c:231.4,f:43.3},
+      {date:"2024-10-29",weight:72,cal:1973,p:113.5,c:330.3,f:29.9},
+      {date:"2024-10-30",weight:71.8,cal:1974,p:141.2,c:254.5,f:47.1},
+      {date:"2024-10-31",weight:72,cal:1973,p:80.5,c:240.2,f:78.2},
+      {date:"2024-11-04",weight:71.6,cal:2971,p:152.8,c:313.3,f:134.2},
+      {date:"2024-11-05",weight:72.1,cal:1910,p:102.3,c:296.9,f:44.5},
+      {date:"2024-11-06",weight:72.4,cal:2858,p:106.7,c:257.5,f:70.9},
+      {date:"2024-11-08",weight:72.4,cal:1885,p:139.3,c:251.1,f:41},
+      {date:"2024-11-09",weight:71.9,cal:1622,p:76,c:135.2,f:93.8},
+      {date:"2024-11-13",weight:73.2,cal:1880,p:123.7,c:189.9,f:65.6},
+      {date:"2024-11-14",weight:72.5,cal:1633,p:129.8,c:207,f:38.1},
+      {date:"2024-11-15",weight:71.9,cal:1732,p:118.3,c:191.6,f:61.4},
+      {date:"2024-11-17",weight:72,cal:1800,p:99,c:272.6,f:41.2},
+      {date:"2024-11-18",weight:72.5,cal:1355,p:92.3,c:161.1,f:42.4},
+      {date:"2024-11-19",weight:72.6,cal:1961,p:115.6,c:291.3,f:42.7},
+      {date:"2024-11-20",weight:72.5,cal:1993,p:151.9,c:247.8,f:50.2},
+      {date:"2024-11-21",weight:72.3,cal:1280,p:42.8,c:143.8,f:63.5},
+      {date:"2024-11-26",weight:72.5,cal:1660,p:139.8,c:189.1,f:43.9},
+      {date:"2024-11-27",weight:72,cal:1830,p:131.2,c:209.6,f:52.9},
+      {date:"2024-11-28",weight:71.9,cal:2104,p:148.3,c:247.6,f:67.2},
+      {date:"2024-11-29",weight:71.9,cal:2115,p:134.5,c:268.4,f:74.6},
+      {date:"2024-12-03",weight:71.9,cal:1932,p:136,c:253.5,f:43.8},
+      {date:"2024-12-04",weight:72,cal:2172,p:161.3,c:259.7,f:65.4},
+      {date:"2024-12-05",weight:71.9,cal:1958,p:124.3,c:264.7,f:55.2},
+      {date:"2024-12-07",weight:71.5,cal:2087,p:156.4,c:253.8,f:54.3},
+      {date:"2024-12-08",weight:71.4,cal:2234,p:148.7,c:275.6,f:72.1},
+      {date:"2024-12-10",weight:71.6,cal:2156,p:143.2,c:267.4,f:63.8},
+      {date:"2024-12-13",weight:71.9,cal:2089,p:138.4,c:258.9,f:68.7},
+      {date:"2024-12-17",weight:72.1,cal:2143,p:145.6,c:271.2,f:71.4},
+      {date:"2024-12-18",weight:72.1,cal:2067,p:139.8,c:262.5,f:66.9},
+      {date:"2024-12-20",weight:72.2,cal:2134,p:142.1,c:269.8,f:69.3},
+      {date:"2026-01-01",cal:2209,p:123,c:225.3,f:97.1},
+      {date:"2026-01-02",cal:2954,p:83.3,c:278.6,f:121.6},
+      {date:"2026-01-03",cal:1874,p:133,c:222.5,f:57.1},
+      {date:"2026-01-04",weight:71,cal:1848,p:125.8,c:203.9,f:64.4},
+      {date:"2026-01-05",weight:70.2,cal:2528,p:130,c:207.7,f:72.3},
+      {date:"2026-01-06",weight:69.5,cal:2013,p:164.3,c:203.2,f:65.7},
+      {date:"2026-01-07",weight:69,cal:1777,p:138,c:203.7,f:51.7},
+      {date:"2026-01-08",weight:69.3,cal:1839,p:128.4,c:197.9,f:67.8},
+      {date:"2026-01-09",weight:69.3,cal:2364,p:124.1,c:205.8,f:87.1},
+      {date:"2026-01-10",cal:3666,p:207.5,c:279.3,f:207.4},
+      {date:"2026-01-11",weight:70.2,cal:2104,p:142,c:198.3,f:86.3},
+      {date:"2026-01-12",weight:69.3,cal:2370,p:165.1,c:278.2,f:73.3},
+      {date:"2026-01-13",weight:69.1,cal:1892,p:166.1,c:213.9,f:47.4},
+      {date:"2026-01-14",weight:69.4,cal:2868,p:180.7,c:243.2,f:86.9},
+      {date:"2026-01-15",cal:2061,p:125.6,c:179.6,f:103},
+      {date:"2026-01-16",weight:68.9,cal:3522,p:172.5,c:326,f:129.5},
+      {date:"2026-01-17",cal:2028,p:96.7,c:246.7,f:79.7},
+      {date:"2026-01-18",weight:69.8,cal:2632,p:188.8,c:329.8,f:73.6},
+      {date:"2026-01-19",weight:69.3,cal:2249,p:127,c:242.1,f:90.5},
+      {date:"2026-01-20",weight:69.2,cal:1655,p:106.9,c:227.3,f:44.8},
+      {date:"2026-01-21",weight:69,cal:1630,p:106.4,c:219.6,f:43.6},
+      {date:"2026-01-22",weight:69.4,cal:2947,p:159.6,c:273.1,f:89.4},
+      {date:"2026-01-23",cal:2419,p:176,c:289.4,f:70.7},
+      {date:"2026-01-24",weight:69.3,cal:3101,p:186.2,c:233.9,f:171.5},
+      {date:"2026-01-25",weight:70.2,cal:1511,p:118.2,c:143.7,f:60},
+      {date:"2026-01-26",weight:69.7,cal:449,p:15.4,c:59.3,f:19},
+      {date:"2026-01-27",cal:1949,p:112.4,c:254.4,f:60.2},
+      {date:"2026-01-28",weight:70.2,cal:1418,p:128.1,c:169.4,f:33.4},
+      {date:"2026-01-29",weight:69.4,cal:2743,p:166.5,c:271.8,f:123.3},
+      {date:"2026-01-30",weight:69.4,cal:2243,p:126.7,c:224.9,f:49.7},
+      {date:"2026-01-31",weight:68.4,cal:1999,p:125.9,c:196.7,f:89.3},
+      {date:"2026-02-01",weight:69.1,cal:1960,p:80.5,c:304.9,f:50.4},
+      {date:"2026-02-02",weight:69.1,cal:2000,p:180.4,c:240.2,f:50.7},
+      {date:"2026-02-03",weight:68.8,cal:2669,p:179.8,c:364.6,f:64.3},
+      {date:"2026-02-04",weight:69.4,cal:2451,p:159.4,c:176.7,f:126.7},
+      {date:"2026-02-05",weight:68.9,cal:3464,p:124,c:317.6,f:163.6},
+      {date:"2026-02-06",cal:2347,p:124.5,c:273.1,f:51.6},
+      {date:"2026-02-07",cal:2365,p:96.1,c:238.8,f:95.1},
+      {date:"2026-02-08",cal:2892,p:138.9,c:377.6,f:100.8},
+      {date:"2026-02-09",cal:2725,p:173.5,c:295.3,f:104.7},
+      {date:"2026-02-10",weight:70.4,cal:3084,p:164.7,c:322.5,f:97.3},
+      {date:"2026-02-11",cal:2435,p:169.3,c:223.9,f:101.2},
+      {date:"2026-02-12",weight:70.2,cal:2647,p:195.3,c:250.9,f:106.8},
+      {date:"2026-02-13",weight:70.1,cal:3728,p:223.7,c:327.9,f:182.6},
+      {date:"2026-02-14",weight:70.6,cal:1600,p:83.8,c:110.6,f:93.4},
+      {date:"2026-02-15",cal:2056,p:147.6,c:280.2,f:47.4},
+      {date:"2026-02-16",weight:70.5,cal:2649,p:138,c:220.9,f:88.9},
+      {date:"2026-02-17",weight:69.9,cal:2337,p:181.1,c:273.2,f:71},
+      {date:"2026-02-18",weight:69.9,cal:1548,p:106.9,c:166.7,f:61.9},
+      {date:"2026-02-19",weight:69.2,cal:1733,p:158.8,c:232.3,f:29.8},
+      {date:"2026-02-20",weight:69,cal:2549,p:123.7,c:190.2,f:72.5},
+      {date:"2026-02-21",cal:1580,p:168.4,c:183.2,f:24.8},
+      {date:"2026-02-22",weight:68.7,cal:2440,p:154.1,c:316.2,f:69.1},
+      {date:"2026-02-23",weight:68.6,cal:2354,p:140.5,c:300.1,f:76.6},
+      {date:"2026-02-24",cal:2803,p:144.6,c:281.3,f:125.7},
+      {date:"2026-02-25",cal:2918,p:170.3,c:242.9,f:108.4},
+      {date:"2026-02-26",weight:69.1,cal:2006,p:182,c:244.1,f:44.7},
+      {date:"2026-02-27",weight:68.9,cal:2078,p:174.1,c:260.5,f:48.1},
+      {date:"2026-02-28",weight:69.4,cal:1926,p:218.2,c:188.3,f:43.1},
+      {date:"2026-03-01",weight:68.7,cal:1721,p:184.2,c:196.6,f:33.1},
+      {date:"2026-03-02",weight:68.3,cal:1915,p:174.6,c:241.1,f:35.3},
+      {date:"2026-03-03",cal:1943,p:165.9,c:268,f:32.5},
+      {date:"2026-03-04",cal:3336,p:188.4,c:245.6,f:117.2},
+      {date:"2026-03-05",cal:1537,p:164.5,c:183.8,f:22.6},
+      {date:"2026-03-06",weight:68.2,cal:2110,p:152.8,c:291.9,f:45.6},
+      {date:"2026-03-07",weight:68.7,cal:1673,p:157.5,c:183.8,f:41},
+      {date:"2026-03-08",weight:67.4,cal:2092,p:150.5,c:214.1,f:77.4},
+      {date:"2026-03-09",weight:68,cal:1800,p:149.2,c:244.3,f:33.7},
+      {date:"2026-03-10",cal:2388,p:180.9,c:273.8,f:59.5},
+      {date:"2026-03-11",weight:69.1,cal:2254,p:160.2,c:266,f:73.4},
+      {date:"2026-03-12",weight:68.1,cal:2966,p:223.5,c:248.9,f:81.5},
+      {date:"2026-03-13",weight:68.1,cal:2175,p:154.8,c:286.9,f:52},
+      {date:"2026-03-14",cal:2372,p:137.9,c:287,f:84.9},
+      {date:"2026-03-15",weight:68.2,cal:1455,p:83,c:226.2,f:27.7},
+      {date:"2026-03-16",cal:1753,p:136.1,c:242.8,f:33.9},
+      {date:"2026-03-17",cal:1581,p:128.3,c:196.5,f:37.1},
+      {date:"2026-03-18",weight:67.1,cal:1692,p:134,c:207.8,f:43.4},
+      {date:"2026-03-19",weight:66.8,cal:1736,p:126.4,c:212,f:47.8,steps:6856,sleep:7.77,sleepScore:99},
+      {date:"2026-03-20",cal:1822,p:159.7,c:229,f:44.8,steps:6723,sleep:8.65,sleepScore:95},
+      {date:"2026-03-21",weight:66.4,cal:1820,p:148.2,c:230.4,f:44.5,steps:6291,sleep:8.97,sleepScore:93},
+      {date:"2026-03-22",weight:66.5,cal:1893,p:169.9,c:224.1,f:44.5,steps:4616,sleep:8.65,sleepScore:95},
+      {date:"2026-03-23",cal:1832,p:157.4,c:225.3,f:42.9,steps:8686,sleep:7.95,sleepScore:99},
+      {date:"2026-03-24",cal:1655,p:134.4,c:214,f:37.6,steps:7765,sleep:7.65,sleepScore:80},
+      {date:"2026-03-25",weight:66.4,cal:2150,p:180,c:167,f:92,steps:8069,sleep:7.33,sleepScore:75},
+      {date:"2026-03-26",weight:66.05,cal:1845,p:160,c:229,f:43,steps:8423,sleep:6.85,sleepScore:62},
+      {date:"2026-03-27",weight:66.35,sleep:7.23,sleepScore:81},
+    ].map(d => TRAIN_DATES.has(d.date) ? {...d,trained:1} : d);
+
+    const fmt    = d => d ? d.slice(5).replace("-","/") : "";
+    const toDay  = () => new Date().toISOString().slice(0,10);
+    const avgArr = arr => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0;
+
+    function mergeData(seed, stored=[]) {
+      const map = {};
+      [...seed,...stored].forEach(r => { map[r.date]={...(map[r.date]||{}),...r}; });
+      return Object.values(map).sort((a,b)=>a.date>b.date?1:-1);
+    }
+
+    function corr(xs,ys) {
+      const n=xs.length; if(n<3) return null;
+      const mx=avgArr(xs),my=avgArr(ys);
+      const num=xs.reduce((s,x,i)=>s+(x-mx)*(ys[i]-my),0);
+      const dx=Math.sqrt(xs.reduce((s,x)=>s+(x-mx)**2,0));
+      const dy=Math.sqrt(ys.reduce((s,y)=>s+(y-my)**2,0));
+      return dx*dy===0?0:num/(dx*dy);
+    }
+
+    function getWeekStart(dateStr) {
+      const d=new Date(dateStr); d.setDate(d.getDate()-d.getDay()+1);
+      return d.toISOString().slice(0,10);
+    }
+
+    const C={bg:"#0f1117",card:"#1a1d27",border:"#2a2d3a",accent:"#6c63ff",
+      green:"#22c55e",red:"#ef4444",yellow:"#f59e0b",blue:"#3b82f6",
+      text:"#e2e8f0",muted:"#64748b",protein:"#f97316",carbs:"#3b82f6",fat:"#a78bfa"};
+    const cs={background:C.card,borderRadius:12,padding:16,border:`1px solid ${C.border}`};
+    const inp={background:"#0f1117",border:`1px solid ${C.border}`,borderRadius:8,
+      color:C.text,padding:"10px 12px",width:"100%",fontSize:15,outline:"none",boxSizing:"border-box"};
+    const gp={stroke:C.border,strokeDasharray:"3 3"};
+    const ap={tick:{fill:C.muted,fontSize:11},axisLine:{stroke:C.border}};
+
+    const CustomTip=({active,payload,label})=>{
+      if(!active||!payload?.length) return null;
+      return React.createElement('div',{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"8px 12px",fontSize:12}},
+        React.createElement('div',{style:{color:C.muted,marginBottom:4}},label),
+        payload.map((p,i)=>React.createElement('div',{key:i,style:{color:p.color||C.text}},`${p.name}: ${typeof p.value==="number"?p.value.toFixed(1):p.value}`))
+      );
+    };
+
+    function TDEECard({allData}) {
+      const r = useMemo(()=>{
+        const sorted=[...allData].sort((a,b)=>a.date>b.date?1:-1);
+        const last=sorted[sorted.length-1]?.date; if(!last) return null;
+        const mid=new Date(last); mid.setDate(mid.getDate()-14);
+        const start=new Date(last); start.setDate(start.getDate()-27);
+        const ms=mid.toISOString().slice(0,10), ss=start.toISOString().slice(0,10);
+        const prev=sorted.filter(d=>d.date>=ss&&d.date<ms);
+        const curr=sorted.filter(d=>d.date>=ms);
+        const all28=sorted.filter(d=>d.date>=ss);
+        const wF=prev.filter(d=>d.weight).map(d=>d.weight);
+        const wL=curr.filter(d=>d.weight).map(d=>d.weight);
+        const cal=all28.filter(d=>d.cal).map(d=>d.cal);
+        if(wF.length<3||wL.length<3||cal.length<10) return null;
+        const wd=avgArr(wL)-avgArr(wF);
+        const ac=avgArr(cal);
+        const tdee=Math.round(ac-(wd*7700/28));
+        return {tdee,ac:Math.round(ac),wd:wd.toFixed(3),wF:avgArr(wF).toFixed(2),wL:avgArr(wL).toFixed(2),
+          surplus:Math.round(ac-tdee),calDays:cal.length,wFd:wF.length,wLd:wL.length,
+          range:`${ss.slice(5)}〜${last.slice(5)}`};
+      },[allData]);
+      if(!r) return React.createElement('div',{style:{...cs,color:C.muted,textAlign:"center",padding:20,fontSize:13}},"データ蓄積中（直近28日のデータが必要）");
+      const def=r.surplus<0;
+      return React.createElement('div',{style:cs},
+        React.createElement('div',{style:{color:C.text,fontWeight:600,fontSize:14,marginBottom:14}},"🔥 推定消費カロリー（直近28日）"),
+        React.createElement('div',{style:{textAlign:"center",marginBottom:14}},
+          React.createElement('div',{style:{color:C.muted,fontSize:12}},"推定TDEE"),
+          React.createElement('div',{style:{color:C.accent,fontSize:40,fontWeight:800,lineHeight:1.1}},r.tdee.toLocaleString()),
+          React.createElement('div',{style:{color:C.muted,fontSize:12}},"kcal / 日")
+        ),
+        React.createElement('div',{style:{background:"#0f1117",borderRadius:8,padding:"10px 12px",fontSize:12}},
+          React.createElement('div',{style:{color:C.muted,fontWeight:600,marginBottom:6}},r.range),
+          React.createElement('div',{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"3px 10px",color:C.muted}},
+            React.createElement('span',null,"前半14日 平均体重"),React.createElement('span',{style:{color:C.text,textAlign:"right"}},`${r.wF}kg（${r.wFd}日）`),
+            React.createElement('span',null,"後半14日 平均体重"),React.createElement('span',{style:{color:C.text,textAlign:"right"}},`${r.wL}kg（${r.wLd}日）`),
+            React.createElement('span',null,"体重変化"),React.createElement('span',{style:{color:parseFloat(r.wd)<0?C.green:C.red,textAlign:"right"}},`${parseFloat(r.wd)>0?"+":""}${r.wd}kg`),
+            React.createElement('span',null,"平均摂取"),React.createElement('span',{style:{color:C.text,textAlign:"right"}},`${r.ac.toLocaleString()} kcal`),
+            React.createElement('span',null,"データ日数"),React.createElement('span',{style:{color:C.text,textAlign:"right"}},`${r.calDays}日`)
+          )
+        )
+      );
+    }
+
+    function App() {
+      const [tab,setTab]=useState("dash");
+      const [allData,setAll]=useState([]);
+      const [workouts,setWorkouts]=useState([]);
+      const [goal,setGoal]=useState({weight:"",date:""});
+      const [period,setPrd]=useState("3m");
+      const [saved,setSaved]=useState(false);
+      const [syncStatus,setSyncStatus]=useState("");
+      const [form,setForm]=useState({date:toDay(),weight:"",cal:"",p:"",c:"",f:"",steps:"",sleep:"",sleepScore:""});
+      const [exercises,setExercises]=useState([]);
+      const [newEx,setNewEx]=useState({name:"",w:"",r:"",s:3});
+      const [customName,setCustomName]=useState("");
+      const [prTab,setPrTab]=useState(null);
+
+      useEffect(()=>{
+        (async()=>{
+          try {
+            const stored = JSON.parse(localStorage.getItem("bodymaker-data")||"[]");
+            const wos    = JSON.parse(localStorage.getItem("bodymaker-workouts")||"[]");
+            const g      = localStorage.getItem("bodymaker-goal");
+            setAll(mergeData(MACRO_SEED,stored));
+            setWorkouts(wos);
+            if(g) setGoal(JSON.parse(g));
+            setSyncStatus("syncing");
+            const gasData = await gasGet("daily");
+            if(gasData.length>0){
+              const conv=gasData.map(r=>({
+                date:r.date,
+                weight:r.weight_kg?parseFloat(r.weight_kg):undefined,
+                cal:r.calories_in?parseInt(r.calories_in):undefined,
+                p:r.protein_g?parseFloat(r.protein_g):undefined,
+                c:r.carbs_g?parseFloat(r.carbs_g):undefined,
+                f:r.fat_g?parseFloat(r.fat_g):undefined,
+                steps:r.steps?parseInt(r.steps):undefined,
+                sleep:r.sleep_hours?parseFloat(r.sleep_hours):undefined,
+                sleepScore:r.sleep_score?parseInt(r.sleep_score):undefined,
+                trained:r.trained?1:undefined,
+              })).filter(r=>r.date);
+              setAll(mergeData(MACRO_SEED,[...stored,...conv]));
+            }
+            setSyncStatus("ok");
+          } catch(e){ setSyncStatus("error"); setAll(mergeData(MACRO_SEED)); }
+        })();
+      },[]);
+
+      const handleSave=async()=>{
+        const entry={date:form.date,
+          ...(form.weight&&{weight:parseFloat(form.weight)}),
+          ...(form.cal&&{cal:parseInt(form.cal)}),
+          ...(form.p&&{p:parseFloat(form.p)}),
+          ...(form.c&&{c:parseFloat(form.c)}),
+          ...(form.f&&{f:parseFloat(form.f)}),
+          ...(form.steps&&{steps:parseInt(form.steps)}),
+          ...(form.sleep&&{sleep:parseFloat(form.sleep)}),
+          ...(form.sleepScore&&{sleepScore:parseInt(form.sleepScore)}),
+          ...(exercises.length>0&&{trained:1}),
+        };
+        const stored=JSON.parse(localStorage.getItem("bodymaker-data")||"[]");
+        const updated=[...stored.filter(x=>x.date!==entry.date),entry];
+        localStorage.setItem("bodymaker-data",JSON.stringify(updated));
+        setSyncStatus("syncing");
+        await gasPost("daily",{date:entry.date,weight_kg:entry.weight??"",calories_in:entry.cal??"",protein_g:entry.p??"",carbs_g:entry.c??"",fat_g:entry.f??"",steps:entry.steps??"",sleep_hours:entry.sleep??"",sleep_score:entry.sleepScore??"",trained:entry.trained??""});
+        if(exercises.length>0){
+          const wo={date:form.date,exercises};
+          const wos=JSON.parse(localStorage.getItem("bodymaker-workouts")||"[]");
+          const wos2=[...wos.filter(x=>x.date!==form.date),wo];
+          localStorage.setItem("bodymaker-workouts",JSON.stringify(wos2));
+          setWorkouts(wos2);
+          await gasPost("workout",{date:form.date,exercises});
+        }
+        setSyncStatus("ok");
+        setAll(mergeData(MACRO_SEED,updated));
+        setSaved(true); setTimeout(()=>setSaved(false),2000);
+        setForm(f=>({...f,weight:"",cal:"",p:"",c:"",f:"",steps:"",sleep:"",sleepScore:""}));
+        setExercises([]);
+      };
+
+      const saveGoal=()=>{ localStorage.setItem("bodymaker-goal",JSON.stringify(goal)); };
+
+      const addExercise=()=>{
+        const name=newEx.name==="custom"?customName:newEx.name;
+        if(!name||!newEx.w||!newEx.r) return;
+        const sets=Array(parseInt(newEx.s)||1).fill({w:parseFloat(newEx.w),r:parseInt(newEx.r)});
+        setExercises(ex=>[...ex.filter(e=>e.name!==name),{name,sets}]);
+        setNewEx({name:"",w:"",r:"",s:3}); setCustomName("");
+      };
+
+      const prData=useMemo(()=>{
+        const map={};
+        workouts.forEach(wo=>{ wo.exercises?.forEach(ex=>{ const maxW=Math.max(...ex.sets.map(s=>s.w)); if(!map[ex.name]) map[ex.name]=[]; map[ex.name].push({date:wo.date,maxW,sets:ex.sets.length,reps:ex.sets[0]?.r}); }); });
+        Object.keys(map).forEach(k=>map[k].sort((a,b)=>a.date>b.date?1:-1));
+        return map;
+      },[workouts]);
+
+      const weeklyReport=useMemo(()=>{
+        const now=new Date(); const ws=getWeekStart(now.toISOString().slice(0,10));
+        const prev=new Date(ws); prev.setDate(prev.getDate()-7); const ps=prev.toISOString().slice(0,10);
+        const calc=arr=>({avgCal:Math.round(avgArr(arr.filter(d=>d.cal).map(d=>d.cal))||0),avgP:Math.round(avgArr(arr.filter(d=>d.p).map(d=>d.p))||0),trainDays:arr.filter(d=>d.trained).length,avgSleep:avgArr(arr.filter(d=>d.sleep).map(d=>d.sleep)).toFixed(1)});
+        return {this:calc(allData.filter(d=>d.date>=ws)),last:calc(allData.filter(d=>d.date>=ps&&d.date<ws))};
+      },[allData]);
+
+      const goalCalc=useMemo(()=>{
+        if(!goal.weight) return null;
+        const ws=allData.filter(d=>d.weight); if(ws.length<14) return null;
+        const recent=ws.slice(-14);
+        const wFirst=avgArr(recent.slice(0,7).map(d=>d.weight));
+        const wLast=avgArr(recent.slice(7).map(d=>d.weight));
+        const rate=(wLast-wFirst)/7;
+        if(rate>=0) return {msg:"現在体重が増加傾向のため予測不可"};
+        const current=ws[ws.length-1].weight;
+        const diff=current-parseFloat(goal.weight);
+        const days=Math.ceil(diff/Math.abs(rate));
+        const eta=new Date(); eta.setDate(eta.getDate()+days);
+        return {days,eta:eta.toLocaleDateString("ja-JP"),ratePerWeek:(rate*7).toFixed(2),current};
+      },[allData,goal]);
+
+      const latest=allData.filter(d=>d.weight).slice(-1)[0]||{};
+      const prevW=allData.filter(d=>d.weight).slice(-2,-1)[0]?.weight;
+      const startW=allData.filter(d=>d.weight)[0]?.weight;
+
+      const filtered=useMemo(()=>{
+        if(period==="all") return allData;
+        const days=period==="3m"?90:30;
+        const cut=new Date(); cut.setDate(cut.getDate()-days);
+        return allData.filter(d=>new Date(d.date)>=cut);
+      },[allData,period]);
+
+      const corrData=useMemo(()=>{
+        const s=[...allData].sort((a,b)=>a.date>b.date?1:-1);
+        const pairs=[];
+        for(let i=0;i+13<s.length;i+=7){
+          const p7=s.slice(i,i+7),c7=s.slice(i+7,i+14);
+          const pW=p7.filter(d=>d.weight).map(d=>d.weight);
+          const cW=c7.filter(d=>d.weight).map(d=>d.weight);
+          if(pW.length<2||cW.length<2) continue;
+          const cal=c7.filter(d=>d.cal).map(d=>d.cal);
+          if(cal.length<3) continue;
+          pairs.push({cal:Math.round(avgArr(cal)),weightDelta:parseFloat((avgArr(cW)-avgArr(pW)).toFixed(3))});
+        }
+        return pairs;
+      },[allData]);
+
+      const sleepCorr=useMemo(()=>allData.filter(d=>d.sleepScore&&d.weight).map(d=>({sleepScore:d.sleepScore,weight:d.weight})),[allData]);
+      const weeklyTrain=useMemo(()=>{
+        const weeks={};
+        allData.filter(d=>d.trained).forEach(d=>{ const k=getWeekStart(d.date); weeks[k]=(weeks[k]||0)+1; });
+        return Object.entries(weeks).map(([w,c])=>({week:w.slice(5),count:c})).slice(-12);
+      },[allData]);
+
+      const calWCorr=corrData.length>=3?corr(corrData.map(d=>d.cal),corrData.map(d=>d.weightDelta)):null;
+      const slWCorr=sleepCorr.length>=3?corr(sleepCorr.map(d=>d.sleepScore),sleepCorr.map(d=>d.weight)):null;
+      const pfcCal=form.p&&form.c&&form.f?Math.round(parseFloat(form.p)*4+parseFloat(form.c)*4+parseFloat(form.f)*9):null;
+      const exNames=Object.keys(prData);
+
+      const h=(tag,props,...children)=>React.createElement(tag,props,...children);
+
+      return h('div',{style:{background:C.bg,minHeight:"100vh",color:C.text,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif"}},
+        // ヘッダー
+        h('div',{style:{background:C.card,borderBottom:`1px solid ${C.border}`,padding:"12px 16px",position:"sticky",top:0,zIndex:10}},
+          h('div',{style:{display:"flex",alignItems:"center",justifyContent:"space-between"}},
+            h('div',null,
+              h('div',{style:{fontWeight:700,fontSize:16,color:C.accent}},"💪 BodyMaker"),
+              h('div',{style:{color:C.muted,fontSize:11}},
+                `${allData.filter(d=>d.weight).length}日分のデータ `,
+                syncStatus==="syncing"&&h('span',{style:{color:C.yellow}},"⟳ 同期中..."),
+                syncStatus==="ok"&&h('span',{style:{color:C.green}},"✓ スプシ同期済"),
+                syncStatus==="error"&&h('span',{style:{color:C.red}},"✗ 同期エラー"),
+              )
+            ),
+            h('div',{style:{textAlign:"right"}},
+              h('div',{style:{color:C.green,fontWeight:700,fontSize:20}},`${latest.weight||"-"}kg`),
+              h('div',{style:{color:C.muted,fontSize:11}},latest.date||"")
+            )
+          )
+        ),
+        // コンテンツ
+        h('div',{style:{padding:"12px 14px 80px",maxWidth:520,margin:"0 auto"}},
+          tab==="dash"&&h(DashTab,{allData,filtered,period,setPrd,weeklyReport,goalCalc,goal,setGoal,saveGoal,startW,latest,prevW,calWCorr,corrData,sleepCorr,slWCorr,weeklyTrain,C,cs,gp,ap,CustomTip,TDEECard}),
+          tab==="input"&&h(InputTab,{form,setForm,exercises,setExercises,newEx,setNewEx,customName,setCustomName,pfcCal,handleSave,saved,addExercise,C,cs,inp}),
+          tab==="analysis"&&h(AnalysisTab,{allData,prData,exNames,prTab,setPrTab,weeklyTrain,corrData,calWCorr,sleepCorr,slWCorr,TDEECard,C,cs,gp,ap,CustomTip})
+        ),
+        // ボトムナビ
+        h('div',{style:{position:"fixed",bottom:0,left:0,right:0,background:C.card,borderTop:`1px solid ${C.border}`,display:"flex",justifyContent:"space-around",padding:"8px 0 12px"}},
+          [["dash","📊 ダッシュ"],["input","✏️ 入力"],["analysis","🏋️ PR・分析"]].map(([id,label])=>
+            h('button',{key:id,onClick:()=>setTab(id),style:{background:"none",border:"none",cursor:"pointer",color:tab===id?C.accent:C.muted,fontSize:12,fontWeight:tab===id?700:400,padding:"4px 8px"}},label)
+          )
+        )
+      );
+    }
+
+    function DashTab({allData,filtered,period,setPrd,weeklyReport,goalCalc,goal,setGoal,saveGoal,startW,latest,prevW,C,cs,gp,ap,CustomTip,TDEECard}) {
+      const h=(tag,props,...ch)=>React.createElement(tag,props,...ch);
+      const wData=filtered.filter(d=>d.weight).map(d=>({date:fmt(d.date),weight:d.weight}));
+      const cData=filtered.filter(d=>d.cal).map(d=>({date:fmt(d.date),cal:d.cal}));
+      const pfcData=filtered.filter(d=>d.p&&d.c&&d.f).slice(-30).map(d=>({date:fmt(d.date),P:+(d.p*4).toFixed(0),C:+(d.c*4).toFixed(0),F:+(d.f*9).toFixed(0)}));
+      const avgCal=avgArr(filtered.filter(d=>d.cal).map(d=>d.cal));
+      const avgP=avgArr(filtered.filter(d=>d.p).map(d=>d.p));
+      const lost=startW&&latest.weight?(startW-latest.weight).toFixed(1):"-";
+      return h('div',{style:{display:"flex",flexDirection:"column",gap:12}},
+        h('div',{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}},
+          [{label:"現在体重",val:`${latest.weight||"-"}kg`,sub:prevW?`前回比 ${((latest.weight||0)-prevW).toFixed(2)}kg`:"",col:C.green},
+           {label:"総減量",val:`-${lost}kg`,sub:`${startW}→${latest.weight}kg`,col:C.accent},
+           {label:"直近平均Cal",val:Math.round(avgCal)||"-",sub:"kcal/日",col:C.yellow},
+           {label:"平均タンパク",val:`${avgP.toFixed(0)}g`,sub:"直近平均",col:C.protein}].map((k,i)=>
+            h('div',{key:i,style:{...cs,textAlign:"center"}},
+              h('div',{style:{color:C.muted,fontSize:12,marginBottom:4}},k.label),
+              h('div',{style:{color:k.col,fontSize:22,fontWeight:700}},k.val),
+              h('div',{style:{color:C.muted,fontSize:11}},k.sub)
+            )
+          )
+        ),
+        h('div',{style:cs},
+          h('div',{style:{color:C.text,fontWeight:600,fontSize:14,marginBottom:10}},"🎯 目標設定"),
+          h('div',{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}},
+            h('label',{style:{color:C.muted,fontSize:12}},"目標体重(kg)",h('input',{type:"number",step:"0.1",value:goal.weight,onChange:e=>setGoal(g=>({...g,weight:e.target.value})),style:{...{background:"#0f1117",border:`1px solid ${C.border}`,borderRadius:8,color:C.text,padding:"10px 12px",width:"100%",fontSize:14,outline:"none",boxSizing:"border-box"},marginTop:4}})),
+            h('label',{style:{color:C.muted,fontSize:12}},"目標日",h('input',{type:"date",value:goal.date,onChange:e=>setGoal(g=>({...g,date:e.target.value})),style:{...{background:"#0f1117",border:`1px solid ${C.border}`,borderRadius:8,color:C.text,padding:"10px 12px",width:"100%",fontSize:14,outline:"none",boxSizing:"border-box"},marginTop:4}}))
+          ),
+          h('button',{onClick:saveGoal,style:{background:C.accent,color:"#fff",border:"none",borderRadius:8,padding:"8px 16px",fontSize:13,cursor:"pointer",width:"100%"}},"保存"),
+          goalCalc&&!goalCalc.msg&&h('div',{style:{marginTop:12,padding:"10px 12px",background:"#0f1117",borderRadius:8,fontSize:12}},
+            h('div',{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"3px 10px",color:C.muted}},
+              h('span',null,"現在体重"),h('span',{style:{color:C.text,textAlign:"right"}},`${goalCalc.current}kg`),
+              h('span',null,"目標体重"),h('span',{style:{color:C.green,textAlign:"right"}},`${goal.weight}kg`),
+              h('span',null,"週間ペース"),h('span',{style:{color:C.blue,textAlign:"right"}},`${goalCalc.ratePerWeek}kg/週`),
+              h('span',null,"予測達成日"),h('span',{style:{color:C.accent,textAlign:"right"}},goalCalc.eta),
+              h('span',null,"残り日数"),h('span',{style:{color:C.yellow,textAlign:"right"}},`${goalCalc.days}日`)
+            )
+          ),
+          goalCalc?.msg&&h('div',{style:{color:C.muted,fontSize:12,marginTop:8,textAlign:"center"}},goalCalc.msg)
+        ),
+        h('div',{style:cs},
+          h('div',{style:{color:C.text,fontWeight:600,fontSize:14,marginBottom:10}},"📅 週次レポート"),
+          h('div',{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,fontSize:12,textAlign:"center"}},
+            [["","今週","先週"],["平均Cal",weeklyReport.this.avgCal||"-",weeklyReport.last.avgCal||"-"],["平均P(g)",weeklyReport.this.avgP||"-",weeklyReport.last.avgP||"-"],["筋トレ日",`${weeklyReport.this.trainDays}日`,`${weeklyReport.last.trainDays}日`],["平均睡眠",`${weeklyReport.this.avgSleep}h`,`${weeklyReport.last.avgSleep}h`]].map((row,i)=>
+              row.map((cell,j)=>h('div',{key:`${i}-${j}`,style:{padding:"5px 4px",background:i===0||j===0?"#0f1117":"transparent",borderRadius:4,color:i===0?C.muted:j===0?C.muted:j===1?C.text:C.muted,fontWeight:i===0||j===0?600:400,border:i>0&&j>0?`1px solid ${C.border}`:"none"}},cell))
+            )
+          )
+        ),
+        h('div',{style:cs},
+          h('div',{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}},
+            h('span',{style:{color:C.text,fontWeight:600,fontSize:14}},"⚖️ 体重推移"),
+            h('div',{style:{display:"flex",gap:6}},["1m","3m","all"].map(p=>h('button',{key:p,onClick:()=>setPrd(p),style:{background:period===p?C.accent:"transparent",color:period===p?"#fff":C.muted,border:`1px solid ${period===p?C.accent:C.border}`,borderRadius:6,padding:"3px 8px",fontSize:11,cursor:"pointer"}},p==="all"?"全期間":p)))
+          ),
+          React.createElement(ResponsiveContainer,{width:"100%",height:170},
+            React.createElement(LineChart,{data:wData},React.createElement(CartesianGrid,gp),React.createElement(XAxis,{dataKey:"date",...ap,interval:"preserveStartEnd"}),React.createElement(YAxis,{...ap,domain:["auto","auto"],tickFormatter:v=>`${v}kg`}),React.createElement(Tooltip,{content:React.createElement(CustomTip)}),React.createElement(Line,{type:"monotone",dataKey:"weight",stroke:C.green,strokeWidth:2,dot:false,name:"体重(kg)"}))
+          )
+        ),
+        h(TDEECard,{allData})
+      );
+    }
+
+    function InputTab({form,setForm,exercises,setExercises,newEx,setNewEx,customName,setCustomName,pfcCal,handleSave,saved,addExercise,C,cs,inp}) {
+      const h=(tag,props,...ch)=>React.createElement(tag,props,...ch);
+      return h('div',{style:{display:"flex",flexDirection:"column",gap:12}},
+        h('div',{style:cs},h('div',{style:{color:C.text,fontWeight:600,fontSize:15,marginBottom:10}},"📅 日付"),h('input',{type:"date",value:form.date,onChange:e=>setForm(f=>({...f,date:e.target.value})),style:inp})),
+        h('div',{style:cs},
+          h('div',{style:{color:C.text,fontWeight:600,fontSize:15,marginBottom:10}},"⚖️ 体重"),
+          h('input',{type:"number",step:"0.05",placeholder:"例: 66.3 kg",value:form.weight,onChange:e=>setForm(f=>({...f,weight:e.target.value})),style:inp})
+        ),
+        h('div',{style:cs},
+          h('div',{style:{color:C.text,fontWeight:600,fontSize:15,marginBottom:10}},"🍽️ マクロ"),
+          h('div',{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}},
+            [["cal","カロリー","2000 kcal"],["p","タンパク質","160 g"],["c","炭水化物","230 g"],["f","脂質","50 g"]].map(([k,l,ph])=>
+              h('label',{key:k,style:{color:C.muted,fontSize:12}},l,h('input',{type:"number",step:"0.1",placeholder:ph,value:form[k],onChange:e=>setForm(f=>({...f,[k]:e.target.value})),style:{...inp,marginTop:3,fontSize:14}}))
+            )
+          ),
+          pfcCal&&h('div',{style:{marginTop:8,padding:"7px 10px",background:"#0f1117",borderRadius:8,color:C.accent,fontSize:12}},`PFC合算: ${pfcCal} kcal`)
+        ),
+        h('div',{style:cs},
+          h('div',{style:{color:C.text,fontWeight:600,fontSize:15,marginBottom:10}},"🏃 ヘルスケア"),
+          h('div',{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}},
+            h('label',{style:{color:C.muted,fontSize:12}},"歩数",h('input',{type:"number",placeholder:"7000",value:form.steps,onChange:e=>setForm(f=>({...f,steps:e.target.value})),style:{...inp,marginTop:3,fontSize:14}})),
+            h('label',{style:{color:C.muted,fontSize:12}},"睡眠(h)",h('input',{type:"number",step:"0.1",placeholder:"7.5",value:form.sleep,onChange:e=>setForm(f=>({...f,sleep:e.target.value})),style:{...inp,marginTop:3,fontSize:14}})),
+            h('label',{style:{color:C.muted,fontSize:12,gridColumn:"1/-1"}},"睡眠スコア",h('input',{type:"number",max:"100",placeholder:"85",value:form.sleepScore,onChange:e=>setForm(f=>({...f,sleepScore:e.target.value})),style:{...inp,marginTop:3,fontSize:14}}))
+          )
+        ),
+        h('div',{style:cs},
+          h('div',{style:{color:C.text,fontWeight:600,fontSize:15,marginBottom:12}},"💪 トレーニング種目"),
+          exercises.length>0&&h('div',{style:{marginBottom:12,display:"flex",flexDirection:"column",gap:6}},
+            exercises.map((ex,i)=>h('div',{key:i,style:{background:"#0f1117",borderRadius:8,padding:"8px 12px",display:"flex",justifyContent:"space-between",alignItems:"center"}},
+              h('div',null,h('div',{style:{color:C.text,fontSize:13,fontWeight:600}},ex.name),h('div',{style:{color:C.muted,fontSize:11}},`${ex.sets.length}セット × ${ex.sets[0]?.r}rep @ ${ex.sets[0]?.w}kg`)),
+              h('button',{onClick:()=>setExercises(e=>e.filter((_,j)=>j!==i)),style:{background:"none",border:"none",color:C.red,fontSize:18,cursor:"pointer"}},"×")
+            ))
+          ),
+          h('div',{style:{background:"#0f1117",borderRadius:10,padding:12,display:"flex",flexDirection:"column",gap:8}},
+            h('div',{style:{color:C.muted,fontSize:12,fontWeight:600}},"種目を追加"),
+            h('select',{value:newEx.name,onChange:e=>setNewEx(n=>({...n,name:e.target.value})),style:{...inp,fontSize:14,padding:"9px 10px"}},
+              h('option',{value:""},"種目を選択..."),
+              PRESET_EXERCISES.map(e=>h('option',{key:e,value:e},e)),
+              h('option',{value:"custom"},"カスタム入力")
+            ),
+            newEx.name==="custom"&&h('input',{placeholder:"種目名を入力",value:customName,onChange:e=>setCustomName(e.target.value),style:{...inp,fontSize:14}}),
+            h('div',{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6}},
+              h('label',{style:{color:C.muted,fontSize:11}},"重量(kg)",h('input',{type:"number",step:"0.5",placeholder:"60",value:newEx.w,onChange:e=>setNewEx(n=>({...n,w:e.target.value})),style:{...inp,marginTop:3,fontSize:14}})),
+              h('label',{style:{color:C.muted,fontSize:11}},"レップ数",h('input',{type:"number",placeholder:"8",value:newEx.r,onChange:e=>setNewEx(n=>({...n,r:e.target.value})),style:{...inp,marginTop:3,fontSize:14}})),
+              h('label',{style:{color:C.muted,fontSize:11}},"セット数",h('input',{type:"number",placeholder:"3",value:newEx.s,onChange:e=>setNewEx(n=>({...n,s:e.target.value})),style:{...inp,marginTop:3,fontSize:14}}))
+            ),
+            h('button',{onClick:addExercise,style:{background:C.accent,color:"#fff",border:"none",borderRadius:8,padding:"10px",fontSize:14,fontWeight:600,cursor:"pointer"}},"＋ 追加")
+          )
+        ),
+        h('button',{onClick:handleSave,style:{background:C.green,color:"#fff",border:"none",borderRadius:10,padding:"16px",fontSize:17,fontWeight:700,cursor:"pointer"}},saved?"✅ 保存しました！":"💾 保存する")
+      );
+    }
+
+    function AnalysisTab({allData,prData,exNames,prTab,setPrTab,weeklyTrain,corrData,calWCorr,sleepCorr,slWCorr,TDEECard,C,cs,gp,ap,CustomTip}) {
+      const h=(tag,props,...ch)=>React.createElement(tag,props,...ch);
+      const prChartData=prTab&&prData[prTab]?prData[prTab].map(d=>({date:fmt(d.date),maxW:d.maxW})):[];
+      const allTimePR=prTab&&prData[prTab]?Math.max(...prData[prTab].map(d=>d.maxW)):null;
+      return h('div',{style:{display:"flex",flexDirection:"column",gap:12}},
+        h('div',{style:cs},
+          h('div',{style:{color:C.text,fontWeight:600,fontSize:14,marginBottom:10}},"🏆 種目別PR・推移"),
+          exNames.length===0?h('div',{style:{color:C.muted,fontSize:13,textAlign:"center",padding:"16px 0"}},"入力タブでトレーニングを記録するとPRが表示されます"):
+          h(React.Fragment,null,
+            h('div',{style:{display:"flex",flexWrap:"wrap",gap:6,marginBottom:12}},
+              exNames.map(n=>h('button',{key:n,onClick:()=>setPrTab(n===prTab?null:n),style:{background:prTab===n?C.accent:"#0f1117",color:prTab===n?"#fff":C.muted,border:`1px solid ${prTab===n?C.accent:C.border}`,borderRadius:20,padding:"5px 12px",fontSize:12,cursor:"pointer"}},n))
+            ),
+            prTab&&prData[prTab]&&h(React.Fragment,null,
+              h('div',{style:{display:"flex",gap:8,marginBottom:10}},
+                [{l:"ALL TIME PR",v:`${allTimePR}kg`,c:C.yellow},{l:"最新",v:`${prData[prTab].slice(-1)[0]?.maxW}kg`,c:C.green},{l:"記録回数",v:`${prData[prTab].length}`,c:C.blue}].map((k,i)=>
+                  h('div',{key:i,style:{flex:1,...cs,textAlign:"center",padding:10}},h('div',{style:{color:C.muted,fontSize:11}},k.l),h('div',{style:{color:k.c,fontSize:24,fontWeight:800}},k.v))
+                )
+              ),
+              React.createElement(ResponsiveContainer,{width:"100%",height:160},
+                React.createElement(LineChart,{data:prChartData},React.createElement(CartesianGrid,gp),React.createElement(XAxis,{dataKey:"date",...ap,interval:"preserveStartEnd"}),React.createElement(YAxis,{...ap,tickFormatter:v=>`${v}kg`,domain:["auto","auto"]}),React.createElement(Tooltip,{content:React.createElement(CustomTip)}),React.createElement(ReferenceLine,{y:allTimePR,stroke:C.yellow,strokeDasharray:"4 4"}),React.createElement(Line,{type:"monotone",dataKey:"maxW",stroke:C.accent,strokeWidth:2,dot:{fill:C.accent,r:4},name:"最高重量(kg)"}))
+              )
+            )
+          )
+        ),
+        h('div',{style:cs},
+          h('div',{style:{color:C.text,fontWeight:600,fontSize:14,marginBottom:10}},"💪 週次トレーニング頻度"),
+          weeklyTrain.length===0?h('div',{style:{color:C.muted,textAlign:"center",padding:"16px 0",fontSize:13}},"データなし"):
+          React.createElement(ResponsiveContainer,{width:"100%",height:140},React.createElement(BarChart,{data:weeklyTrain},React.createElement(CartesianGrid,gp),React.createElement(XAxis,{dataKey:"week",...ap}),React.createElement(YAxis,{...ap,allowDecimals:false}),React.createElement(Tooltip,{content:React.createElement(CustomTip)}),React.createElement(Bar,{dataKey:"count",fill:C.green,name:"回数",radius:[4,4,0,0]})))
+        ),
+        h('div',{style:cs},
+          h('div',{style:{color:C.text,fontWeight:600,fontSize:14,marginBottom:4}},"📊 カロリー vs 体重変化"),
+          h('div',{style:{color:C.muted,fontSize:12,marginBottom:10}},`相関係数: `,h('span',{style:{color:calWCorr>0?C.red:C.green,fontWeight:700}},calWCorr?calWCorr.toFixed(3):"不足")),
+          React.createElement(ResponsiveContainer,{width:"100%",height:190},React.createElement(ScatterChart,null,React.createElement(CartesianGrid,gp),React.createElement(XAxis,{dataKey:"cal",...ap}),React.createElement(YAxis,{dataKey:"weightDelta",...ap,tickFormatter:v=>`${v>0?"+":""}${v}`}),React.createElement(Tooltip,{content:React.createElement(CustomTip)}),React.createElement(ReferenceLine,{y:0,stroke:C.muted}),React.createElement(Scatter,{data:corrData,fill:C.accent,fillOpacity:0.7,name:"データ点"})))
+        ),
+        h(TDEECard,{allData}),
+        h('div',{style:cs},
+          h('div',{style:{color:C.text,fontWeight:600,fontSize:14,marginBottom:10}},"📋 直近7日サマリー"),
+          h('div',{style:{overflowX:"auto"}},
+            h('table',{style:{width:"100%",borderCollapse:"collapse",fontSize:11}},
+              h('thead',null,h('tr',{style:{color:C.muted}},["日付","体重","Cal","P","C","F","筋トレ"].map(col=>h('th',{key:col,style:{padding:"4px 5px",borderBottom:`1px solid ${C.border}`,textAlign:"right",whiteSpace:"nowrap"}},col)))),
+              h('tbody',null,allData.slice(-7).reverse().map((d,i)=>h('tr',{key:i,style:{color:C.text}},
+                h('td',{style:{padding:"4px 5px",color:C.muted,whiteSpace:"nowrap"}},fmt(d.date)),
+                h('td',{style:{padding:"4px 5px",textAlign:"right",color:C.green}},d.weight||"-"),
+                h('td',{style:{padding:"4px 5px",textAlign:"right"}},d.cal||"-"),
+                h('td',{style:{padding:"4px 5px",textAlign:"right",color:C.protein}},d.p||"-"),
+                h('td',{style:{padding:"4px 5px",textAlign:"right",color:C.carbs}},d.c||"-"),
+                h('td',{style:{padding:"4px 5px",textAlign:"right",color:C.fat}},d.f||"-"),
+                h('td',{style:{padding:"4px 5px",textAlign:"center"}},d.trained?"✅":"-")
+              )))
+            )
+          )
+        )
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(React.createElement(App));
+  </script>
+</body>
+</html>
