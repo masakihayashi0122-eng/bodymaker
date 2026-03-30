@@ -156,6 +156,32 @@ let goal=JSON.parse(localStorage.getItem("bm-goal")||'{"weight":"","date":""}');
 let currentCat=null;       // 選択中カテゴリ
 let currentEx=null;        // 選択中種目名
 let currentSets=[];        // [{w,r}, ...]  今入力中の種目のセット
+// ── 種目マスター ──
+const CATEGORY_DEFAULT={
+  "胸":["ベンチプレス","インクラインベンチ","ダンベルプレス","インクラインダンベルプレス","ダンベルフライ","ケーブルクロスオーバー","ディップス"],
+  "背中":["デッドリフト","ラットプルダウン","ベントオーバーロウ","チンニング","シーテッドロウ","ワンハンドロウ","Tバーロウ"],
+  "脚":["スクワット","レッグプレス","レッグカール","レッグエクステンション","ルーマニアンデッドリフト","カーフレイズ","ブルガリアンスクワット"],
+  "肩":["ショルダープレス","サイドレイズ","フロントレイズ","フェイスプル","アーノルドプレス","リアデルトフライ"],
+  "腕":["ダンベルカール","バーベルカール","トライセプスエクステ","トライセプスプッシュダウン","ハンマーカール","コンセントレーションカール"],
+};
+function getCategories(){
+  const custom=JSON.parse(localStorage.getItem("bm-categories")||"{}");
+  const merged={};
+  Object.keys(CATEGORY_DEFAULT).forEach(k=>{merged[k]=[...CATEGORY_DEFAULT[k],...(custom[k]||[])];});
+  Object.keys(custom).forEach(k=>{if(!merged[k])merged[k]=custom[k];});
+  return merged;
+}
+function saveCustomExercise(cat,name){
+  const custom=JSON.parse(localStorage.getItem("bm-categories")||"{}");
+  if(!custom[cat])custom[cat]=[];
+  if(!custom[cat].includes(name))custom[cat].push(name);
+  localStorage.setItem("bm-categories",JSON.stringify(custom));
+}
+
+// ── 入力状態 ──
+let currentCat=null;
+let currentEx=null;
+let currentSets=[];
 let exercises=[];          // [{name,sets:[{w,r}]}, ...]  今日のログ
 let prTab=null;
 let period="3m";
