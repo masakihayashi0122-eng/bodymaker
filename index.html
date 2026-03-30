@@ -274,12 +274,14 @@ function miniLineChart(data,key,color){
   if(!data.length) return '<div style="color:#64748b;font-size:12px;text-align:center;padding:20px">データなし</div>';
   const vals=data.map(d=>d[key]);
   const mn=Math.min(...vals),mx=Math.max(...vals),range=mx-mn||1;
-  return `<div class="chart-bar-wrap">${data.map(d=>`<div class="chart-bar-col"><div class="chart-bar" style="height:${Math.max(4,((d[key]-mn)/range)*88)}px;background:${color}"></div><div class="chart-label">${fmt(d.date)}</div></div>`).join("")}</div>`;
+  const minW=Math.max(100,data.length*18);
+  return `<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><div class="chart-bar-wrap" style="min-width:${minW}px">${data.map(d=>`<div class="chart-bar-col"><div class="chart-bar" style="height:${Math.max(4,((d[key]-mn)/range)*88)}px;background:${color}"></div><div class="chart-label">${fmt(d.date)}</div></div>`).join("")}</div></div>`;
 }
 function miniBarChart(data,key,color){
   if(!data.length) return '<div style="color:#64748b;font-size:12px;text-align:center;padding:20px">データなし</div>';
   const mx=Math.max(...data.map(d=>d[key]));
-  return `<div class="chart-bar-wrap">${data.map(d=>`<div class="chart-bar-col"><div class="chart-bar" style="height:${Math.max(4,(d[key]/mx)*88)}px;background:${color}"></div><div class="chart-label">${fmt(d.date)}</div></div>`).join("")}</div>`;
+  const minW=Math.max(100,data.length*18);
+  return `<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><div class="chart-bar-wrap" style="min-width:${minW}px">${data.map(d=>`<div class="chart-bar-col"><div class="chart-bar" style="height:${Math.max(4,(d[key]/mx)*88)}px;background:${color}"></div><div class="chart-label">${fmt(d.date)}</div></div>`).join("")}</div></div>`;
 }
 function setPeriod(p){period=p;renderDash();}
 function saveGoal(){localStorage.setItem("bm-goal",JSON.stringify(goal));renderDash();}
