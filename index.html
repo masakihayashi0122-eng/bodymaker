@@ -139,14 +139,6 @@ function mergeData(seed,stored=[]){
   return Object.values(m).sort((a,b)=>a.date>b.date?1:-1);
 }
 
-// ── 状態 ──
-let allData=mergeData(SEED);
-let workouts=JSON.parse(localStorage.getItem("bm-workouts")||"[]");
-let goal=JSON.parse(localStorage.getItem("bm-goal")||'{"weight":"","date":""}');
-// ── 入力状態 ──
-let currentCat=null;       // 選択中カテゴリ
-let currentEx=null;        // 選択中種目名
-let currentSets=[];        // [{w,r}, ...]  今入力中の種目のセット
 // ── 種目マスター ──
 const CATEGORY_DEFAULT={
   "胸":["ベンチプレス","インクラインベンチ","ダンベルプレス","インクラインダンベルプレス","ダンベルフライ","ケーブルクロスオーバー","ディップス"],
