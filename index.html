@@ -199,11 +199,14 @@ async function init(){
   const stored=JSON.parse(localStorage.getItem("bm-data")||"[]");
   allData=mergeData(SEED,stored);
   updateHeader();
-  renderAll();
+  try {
+    renderAll();
+  } catch(e) {
+    document.getElementById("tab-dash").innerHTML=`<div style="color:#ef4444;padding:20px;font-size:13px">エラー: ${e.message}</div>`;
+  }
 
   setSub('<span class="sync-ing">⟳ 同期中...</span>');
   try{
-    // 10秒でタイムアウト
     const timeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error("timeout")),10000));
     const res=await Promise.race([gasPost("get_daily",{}),timeout]);
     if(res&&res.success&&res.data.length>0){
