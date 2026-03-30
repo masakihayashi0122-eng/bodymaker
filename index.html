@@ -203,7 +203,9 @@ async function init(){
 
   setSub('<span class="sync-ing">⟳ 同期中...</span>');
   try{
-    const res=await gasPost("get_daily",{});
+    // 10秒でタイムアウト
+    const timeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error("timeout")),10000));
+    const res=await Promise.race([gasPost("get_daily",{}),timeout]);
     if(res&&res.success&&res.data.length>0){
       const conv=res.data.map(r=>({
         date:r.date,
@@ -221,7 +223,9 @@ async function init(){
       renderAll();
     }
     setSub('<span class="sync-ok">✓ スプシ同期済</span>');
-  }catch(e){setSub('<span class="sync-err">✗ 同期エラー</span>');}
+  }catch(e){
+    setSub('<span class="sync-err">✗ 同期エラー（オフライン動作中）</span>');
+  }
 }
 
 function setSub(html){
