@@ -258,6 +258,17 @@ async function init(){
       allData=mergeData(SEED,[...stored,...conv]);
       renderAll();
     }
+    // カスタム種目をスプシから取得してマージ
+    const customRes=await Promise.race([gasPost("get_custom",{}),timeout]);
+    if(customRes&&customRes.success&&Object.keys(customRes.data).length>0){
+      const stored_custom=JSON.parse(localStorage.getItem("bm-categories")||"{}");
+      const merged={...stored_custom};
+      Object.keys(customRes.data).forEach(cat=>{
+        if(!merged[cat])merged[cat]=[];
+        customRes.data[cat].forEach(ex=>{if(!merged[cat].includes(ex))merged[cat].push(ex);});
+      });
+      localStorage.setItem("bm-categories",JSON.stringify(merged));
+    }
     setSub('<span class="sync-ok">✓ スプシ同期済</span>');
   }catch(e){setSub('<span class="sync-err">✗ 同期エラー（オフライン動作中）</span>');}
 }
