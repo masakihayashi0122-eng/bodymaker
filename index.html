@@ -486,6 +486,16 @@ function updatePFC(){
 }
 function selectCat(cat){currentCat=cat;currentEx=null;currentSets=[];renderInput();}
 function selectEx(ex){currentEx=ex;currentSets=[];renderInput();}
+function getCustomExercises(cat){
+  const custom=JSON.parse(localStorage.getItem("bm-categories")||"{}");
+  return custom[cat]||[];
+}
+function deleteCustomEx(cat,name){
+  const custom=JSON.parse(localStorage.getItem("bm-categories")||"{}");
+  if(custom[cat]) custom[cat]=custom[cat].filter(e=>e!==name);
+  localStorage.setItem("bm-categories",JSON.stringify(custom));
+  if(currentEx===name){currentEx=null;currentSets=[];}
+}
 function toggleAddEx(){const a=document.getElementById("add-ex-area");if(a)a.style.display=a.style.display==="none"?"block":"none";}
 function addCustomEx(){
   const name=document.getElementById("custom-ex-name")?.value?.trim();
