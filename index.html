@@ -454,8 +454,8 @@ function renderInput(){
       <div style="${currentCat?"":"display:none"}">
         <div style="color:#64748b;font-size:12px;font-weight:600;margin-bottom:8px">② 種目を選択</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
-          ${currentCat?cats[currentCat].map(ex=>`<button onclick="selectEx('${ex.replace(/'/g,"\\'")}')" style="background:${currentEx===ex?"rgba(0,120,80,0.6)":"rgba(0,15,30,0.9)"};color:${currentEx===ex?"#00ffcc":"#4a8fa8"};border:1px solid ${currentEx===ex?"rgba(0,255,180,0.6)":"rgba(0,150,200,0.2)"};border-radius:3px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:600;letter-spacing:1px;${currentEx===ex?"text-shadow:0 0 8px rgba(0,255,180,0.8);box-shadow:0 0 10px rgba(0,200,150,0.3);":""}">${ex}</button>`).join(""):""}
-          <button onclick="toggleAddEx()" style="background:rgba(0,15,30,0.9);color:#00d4ff;border:1px dashed rgba(0,212,255,0.4);border-radius:3px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;letter-spacing:1px">＋ NEW</button>
+${currentCat?renderExButtons(currentCat,currentEx,cats):""}
+<button onclick="toggleAddEx()" style="background:rgba(0,15,30,0.9);color:#00d4ff;border:1px dashed rgba(0,212,255,0.4);border-radius:3px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;letter-spacing:1px">＋ NEW</button>
         </div>
         <div id="add-ex-area" style="display:none;background:#0f1117;border-radius:8px;padding:10px;margin-bottom:10px">
           <input type="text" id="custom-ex-name" placeholder="種目名を入力" style="margin-bottom:6px">
