@@ -495,6 +495,27 @@ function updatePFC(){
   if(p&&c&&f){el.style.display="block";el.textContent=`PFC合算: ${Math.round(p*4+c*4+f*9)} kcal`;}
   else el.style.display="none";
 }
+function renderExButtons(cat, selectedEx, cats) {
+  if (!cat || !cats[cat]) return "";
+  return cats[cat].map(ex => {
+    const isDefault = (CATEGORY_DEFAULT[cat] || []).includes(ex);
+    const isSel = selectedEx === ex;
+    const bg = isSel ? "rgba(0,120,80,0.6)" : "rgba(0,15,30,0.9)";
+    const col = isSel ? "#00ffcc" : "#4a8fa8";
+    const border = isSel ? "rgba(0,255,180,0.6)" : "rgba(0,150,200,0.2)";
+    const glow = isSel ? "text-shadow:0 0 8px rgba(0,255,180,0.8);box-shadow:0 0 10px rgba(0,200,150,0.3);" : "";
+    const br = isDefault ? "3px" : "3px 0 0 3px";
+    const exEsc = ex.replace(/'/g, "\\'");
+    const catEsc = (cat || "").replace(/'/g, "\\'");
+    let html = `<div style="display:flex;align-items:center">`;
+    html += `<button onclick="selectEx('${exEsc}')" style="background:${bg};color:${col};border:1px solid ${border};border-radius:${br};padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:600;letter-spacing:1px;${glow}">${ex}</button>`;
+    if (!isDefault) {
+      html += `<button onclick="deleteCustomEx('${catEsc}','${exEsc}');renderInput()" style="background:rgba(255,20,50,0.2);border:1px solid rgba(255,50,80,0.4);border-left:none;border-radius:0 3px 3px 0;color:#ff4466;font-size:13px;cursor:pointer;padding:5px 7px;line-height:1;font-weight:700">×</button>`;
+    }
+    html += `</div>`;
+    return html;
+  }).join("");
+}
 function selectCat(cat){currentCat=cat;currentEx=null;currentSets=[];renderInput();}
 function selectEx(ex){currentEx=ex;currentSets=[];renderInput();}
 function getCustomExercises(cat){
