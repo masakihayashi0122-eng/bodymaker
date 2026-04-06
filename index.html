@@ -574,6 +574,7 @@ function removeSet(i){
 }
 function finishEx(){
   if(!currentEx||currentSets.length===0)return;
+  clearDraftSets(currentEx);
   exercises=exercises.filter(e=>e.name!==currentEx);
   exercises.push({name:currentEx,sets:[...currentSets]});
   currentEx=null;currentSets=[];renderInput();
