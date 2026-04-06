@@ -472,6 +472,14 @@ ${currentCat?renderExButtons(currentCat,currentEx,cats):""}
       </div>
       <div style="${currentEx?"":"display:none"}">
         <div style="color:#64748b;font-size:12px;font-weight:600;margin-bottom:8px">③ <span style="color:#f59e0b">${currentEx||""}</span> のセットを入力</div>
+        ${(()=>{
+  if(!currentEx)return "";
+  const prev=workouts.filter(w=>w.exercises?.some(e=>e.name===currentEx)).slice(-1)[0];
+  if(!prev)return "";
+  const ex=prev.exercises.find(e=>e.name===currentEx);
+  const sets=ex.sets.map((s,i)=>`${s.w}kg×${s.r}回`).join(" / ");
+  return `<div style="background:rgba(0,100,200,0.1);border:1px solid rgba(0,150,255,0.2);border-radius:3px;padding:8px 10px;margin-bottom:8px;font-size:12px"><span style="color:#4a8fa8">前回(${prev.date}): </span><span style="color:#c8eeff">${sets}</span></div>`;
+})()}
         <div id="sets-done"></div>
         <div style="background:#0f1117;border-radius:8px;padding:10px;margin-bottom:8px">
           <div style="color:#64748b;font-size:11px;margin-bottom:6px" id="set-num-label">セット ${currentSets.length+1}</div>
