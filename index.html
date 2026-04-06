@@ -548,6 +548,7 @@ function addSet(){
   const r=parseInt(document.getElementById("set-r")?.value);
   if(!w||!r)return;
   currentSets.push({w,r});
+  saveDraftSets(currentEx,currentSets);
   document.getElementById("set-w").value="";
   document.getElementById("set-r").value="";
   renderSetsDone();
