@@ -525,7 +525,7 @@ function renderExButtons(cat, selectedEx, cats) {
   }).join("");
 }
 function selectCat(cat){currentCat=cat;currentEx=null;currentSets=[];renderInput();}
-function selectEx(ex){currentEx=ex;currentSets=[];renderInput();}
+function selectEx(ex){currentEx=ex;currentSets=loadDraftSets(ex);renderInput();}
 function getCustomExercises(cat){
   const custom=JSON.parse(localStorage.getItem("bm-categories")||"{}");
   return custom[cat]||[];
