@@ -205,7 +205,15 @@ function saveCustomExercise(cat,name){
   if(!custom[cat].includes(name))custom[cat].push(name);
   localStorage.setItem("bm-categories",JSON.stringify(custom));
 }
-
+function saveDraftSets(ex,sets){
+  localStorage.setItem("bm-draft-"+ex,JSON.stringify(sets));
+}
+function loadDraftSets(ex){
+  return JSON.parse(localStorage.getItem("bm-draft-"+ex)||"[]");
+}
+function clearDraftSets(ex){
+  localStorage.removeItem("bm-draft-"+ex);
+}
 function weekStart(d){
   const dt=new Date(d); dt.setDate(dt.getDate()-dt.getDay()+1);
   return dt.toISOString().slice(0,10);
