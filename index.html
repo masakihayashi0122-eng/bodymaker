@@ -593,7 +593,7 @@ async function saveData(){
     steps:parseInt(document.getElementById("f-steps").value)||undefined,
     sleep:parseFloat(document.getElementById("f-sleep").value)||undefined,
     sleepScore:parseInt(document.getElementById("f-score").value)||undefined,
-    trained:exercises.length>0?1:undefined
+trained:(exercises.length>0||workouts.some(w=>w.date===date))?1:undefined
   };
   const stored=JSON.parse(localStorage.getItem("bm-data")||"[]");
   const updated=[...stored.filter(x=>x.date!==date),entry];
