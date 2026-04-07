@@ -611,13 +611,13 @@ async function saveData(){
     steps:parseInt(document.getElementById("f-steps").value)||undefined,
     sleep:parseFloat(document.getElementById("f-sleep").value)||undefined,
     sleepScore:parseInt(document.getElementById("f-score").value)||undefined,
-trained:(exercises.length>0||workouts.some(w=>w.date===date))?1:undefined
+trained:(exercises.length>0||workouts.some(w=>w.date===date)||undefined)
   };
   const stored=JSON.parse(localStorage.getItem("bm-data")||"[]");
   const updated=[...stored.filter(x=>x.date!==date),entry];
   localStorage.setItem("bm-data",JSON.stringify(updated));
   allData=mergeData(SEED,updated);
-  await gasPost("save_daily",{date,weight_kg:entry.weight??"",calories_in:entry.cal??"",protein_g:entry.p??"",carbs_g:entry.c??"",fat_g:entry.f??"",steps:entry.steps??"",sleep_hours:entry.sleep??"",sleep_score:entry.sleepScore??"",trained:entry.trained??""});
+  await gasPost("save_daily",{date,weight_kg:entry.weight??"",calories_in:entry.cal??"",protein_g:entry.p??"",carbs_g:entry.c??"",fat_g:entry.f??"",steps:entry.steps??"",sleep_hours:entry.sleep??"",sleep_score:entry.sleepScore??"",trained:entry.trained!=null?entry.trained:""});
   if(exercises.length>0){
     const wo={date,exercises};
     const wos=JSON.parse(localStorage.getItem("bm-workouts")||"[]");
