@@ -617,7 +617,9 @@ trained:(exercises.length>0||workouts.some(w=>w.date===date)||undefined)
   const updated=[...stored.filter(x=>x.date!==date),entry];
   localStorage.setItem("bm-data",JSON.stringify(updated));
   allData=mergeData(SEED,updated);
-  await gasPost("save_daily",{date,weight_kg:entry.weight??"",calories_in:entry.cal??"",protein_g:entry.p??"",carbs_g:entry.c??"",fat_g:entry.f??"",steps:entry.steps??"",sleep_hours:entry.sleep??"",sleep_score:entry.sleepScore??"",trained:entry.trained!=null?entry.trained:""});
+const dailyPayload={date,weight_kg:entry.weight??"",calories_in:entry.cal??"",protein_g:entry.p??"",carbs_g:entry.c??"",fat_g:entry.f??"",steps:entry.steps??"",sleep_hours:entry.sleep??"",sleep_score:entry.sleepScore??""};
+if(entry.trained)dailyPayload.trained=1;
+await gasPost("save_daily",dailyPayload);
   if(exercises.length>0){
     const wo={date,exercises};
     const wos=JSON.parse(localStorage.getItem("bm-workouts")||"[]");
