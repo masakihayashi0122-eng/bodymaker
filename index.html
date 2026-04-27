@@ -297,6 +297,7 @@ function updateHeader(){
 }
 function renderAll(){updateHeader();renderDash();renderInput();renderAnalysis();}
 function switchTab(name,btn){
+  if(name==="calendar")renderCalendar();
   document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
   document.getElementById("tab-"+name).classList.add("active");
   document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));
