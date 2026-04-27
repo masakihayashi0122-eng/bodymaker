@@ -231,6 +231,8 @@ let currentSets=[];
 let exercises=[];
 let prTab=null;
 let period="3m";
+let calYear=new Date().getFullYear();
+let calMonth=new Date().getMonth();
 
 // ── GAS通信 ──
 async function gasPost(action,data){
