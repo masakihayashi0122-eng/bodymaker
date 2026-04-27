@@ -302,6 +302,63 @@ function switchTab(name,btn){
 }
 
 // ── ダッシュ ──
+  function renderCalendar(){
+  const now=new Date();
+  const year=calYear||now.getFullYear();
+  const month=calMonth!==undefined?calMonth:now.getMonth();
+  const firstDay=new Date(year,month,1).getDay();
+  const daysInMonth=new Date(year,month+1,0).getDate();
+  const trainedDates=new Set(allData.filter(d=>d.trained===1).map(d=>d.date));
+  const days=["日","月","火","水","木","金","土"];
+  let html=`
+    <div style="padding:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <button onclick="calMonth--;if(calMonth<0){calMonth=11;calYear--;}renderCalendar()" style="background:rgba(0,15,30,0.9);color:#00d4ff;border:1px solid rgba(0,212,255,0.3);border-radius:6px;padding:6px 14px;cursor:pointer;font-size:16px">‹</button>
+        <div style="color:#e2e8f0;font-size:16px;font-weight:600">${year}年${month+1}月</div>
+        <button onclick="calMonth++;if(calMonth>11){calMonth=0;calYear++;}renderCalendar()" style="background:rgba(0,15,30,0.9);color:#00d4ff;border:1px solid rgba(0,212,255,0.3);border-radius:6px;padding:6px 14px;cursor:pointer;font-size:16px">›</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px">
+        ${days.map((d,i)=>`<div style="text-align:center;font-size:11px;color:${i===0?"#f87171":i===6?"#60a5fa":"#64748b"};padding:4px 0">${d}</div>`).join("")}
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">
+        ${Array(firstDay).fill('<div></div>').join("")}
+        ${Array.from({length:daysInMonth},(_,i)=>{
+          const d=i+1;
+          const dateStr=`${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+          const trained=trainedDates.has(dateStr);
+          const isToday=dateStr===new Date().toISOString().slice(0,10);
+          return `<div onclick="${trained?`showWorkoutDetail('${dateStr}')`:"void(0)"}" style="
+            text-align:center;padding:8px 2px;border-radius:6px;font-size:13px;cursor:${trained?"pointer":"default"};
+            background:${trained?"rgba(0,200,150,0.15)":isToday?"rgba(0,100,200,0.1)":"transparent"};
+            border:1px solid ${trained?"rgba(0,255,180,0.4)":isToday?"rgba(0,150,255,0.3)":"rgba(255,255,255,0.05)"};
+            color:${trained?"#00ffcc":isToday?"#60a5fa":"#94a3b8"};
+            box-shadow:${trained?"0 0 8px rgba(0,255,180,0.2)":""};
+            font-weight:${trained||isToday?"600":"400"}">
+            ${d}${trained?"<div style='font-size:8px;color:#00ffcc'>💪</div>":""}
+          </div>`;
+        }).join("")}
+      </div>
+      <div style="margin-top:12px;font-size:11px;color:#4a8fa8;text-align:center">💪 = トレーニング実施日（タップで詳細）</div>
+    </div>
+    <div id="workout-detail"></div>`;
+  document.getElementById("tab-calendar").innerHTML=html;
+}
+
+function showWorkoutDetail(date){
+  const wo=workouts.find(w=>w.date===date);
+  const detail=document.getElementById("workout-detail");
+  if(!wo){detail.innerHTML=`<div style="padding:16px;color:#64748b;text-align:center">データなし</div>`;return;}
+  const html=`
+    <div style="margin:0 16px 16px;background:rgba(0,15,30,0.9);border:1px solid rgba(0,212,255,0.2);border-radius:8px;padding:16px">
+      <div style="color:#00d4ff;font-size:14px;font-weight:600;margin-bottom:12px">📋 ${date} のトレーニング</div>
+      ${wo.exercises.map(ex=>`
+        <div style="margin-bottom:12px">
+          <div style="color:#00ffcc;font-size:13px;font-weight:600;margin-bottom:6px">🏋️ ${ex.name}</div>
+          ${ex.sets.map((s,i)=>`<div style="color:#c8eeff;font-size:12px;padding:3px 0;padding-left:12px">セット${i+1}: ${s.w}kg × ${s.r}回</div>`).join("")}
+        </div>`).join("")}
+    </div>`;
+  detail.innerHTML=html;
+}
 function renderDash(){
   const ws=allData.filter(d=>d.weight);
   const latest=ws[ws.length-1]||{};
