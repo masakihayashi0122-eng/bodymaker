@@ -281,6 +281,19 @@ async function init(){
       });
       localStorage.setItem("bm-categories",JSON.stringify(merged));
     }
+    // workoutsをスプシから取得してlocalStorageに同期
+const woRes=await Promise.race([gasPost("get_workout",{}),timeout]);
+if(woRes&&woRes.success&&woRes.data.length>0){
+  const grouped={};
+  woRes.data.forEach(r=>{
+    if(!grouped[r.date])grouped[r.date]=[];
+    const ex=grouped[r.date].find(e=>e.name===r.exercise);
+    if(ex){ex.sets.push({w:parseFloat(r.weight_kg)||0,r:parseInt(r.reps)||0});}
+    else{grouped[r.date].push({name:r.exercise,sets:[{w:parseFloat(r.weight_kg)||0,r:parseInt(r.reps)||0}]});}
+  });
+  workouts=Object.entries(grouped).map(([date,exercises])=>({date,exercises}));
+  localStorage.setItem("bm-workouts",JSON.stringify(workouts));
+}
     setSub('<span class="sync-ok">✓ スプシ同期済</span>');
   }catch(e){setSub('<span class="sync-err">✗ 同期エラー（オフライン動作中）</span>');}
 }
