@@ -660,6 +660,7 @@ function finishEx(){
   clearDraftSets(currentEx);
   exercises=exercises.filter(e=>e.name!==currentEx);
   exercises.push({name:currentEx,sets:[...currentSets]});
+  localStorage.setItem("bm-exercises-draft",JSON.stringify({date:document.getElementById("f-date").value,exercises}));
   currentEx=null;currentSets=[];renderInput();
 }
 function renderExLog(){
