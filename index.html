@@ -228,7 +228,7 @@ let goal=JSON.parse(localStorage.getItem("bm-goal")||'{"weight":"","date":""}');
 let currentCat=null;
 let currentEx=null;
 let currentSets=[];
-let exercises=[];
+let exercises=(()=>{const d=JSON.parse(localStorage.getItem("bm-exercises-draft")||"null");return d&&d.date===new Date().toISOString().slice(0,10)?d.exercises:[];})();
 let prTab=null;
 let period="3m";
 let calYear=new Date().getFullYear();
