@@ -364,6 +364,7 @@ function showWorkoutDetail(date){
   const wo=workouts.find(w=>w.date===date);
   const detail=document.getElementById("workout-detail");
   if(!wo){detail.innerHTML=`<div style="padding:16px;color:#64748b;text-align:center">データなし</div>`;return;}
+  const shareText=`💪 ${date} のトレーニング\n\n`+wo.exercises.map(ex=>`🏋️ ${ex.name}\n`+ex.sets.map((s,i)=>`  セット${i+1}: ${s.w}kg × ${s.r}回`).join("\n")).join("\n\n");
   const html=`
     <div style="margin:0 16px 16px;background:rgba(0,15,30,0.9);border:1px solid rgba(0,212,255,0.2);border-radius:8px;padding:16px">
       <div style="color:#00d4ff;font-size:14px;font-weight:600;margin-bottom:12px">📋 ${date} のトレーニング</div>
@@ -372,6 +373,7 @@ function showWorkoutDetail(date){
           <div style="color:#00ffcc;font-size:13px;font-weight:600;margin-bottom:6px">🏋️ ${ex.name}</div>
           ${ex.sets.map((s,i)=>`<div style="color:#c8eeff;font-size:12px;padding:3px 0;padding-left:12px">セット${i+1}: ${s.w}kg × ${s.r}回</div>`).join("")}
         </div>`).join("")}
+      <button onclick="navigator.share&&navigator.share({title:'BodyMaker トレーニング記録',text:\`${shareText.replace(/`/g,'\\`')}\`}).catch(()=>{})" style="margin-top:8px;width:100%;background:rgba(0,180,100,0.2);color:#00ffcc;border:1px solid rgba(0,255,180,0.3);border-radius:6px;padding:10px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:600">📤 この記録を共有する</button>
     </div>`;
   detail.innerHTML=html;
 }
