@@ -708,7 +708,7 @@ await gasPost("save_daily",dailyPayload);
   // 魔術回路フラッシュ
   const flash=document.createElement("div");
   flash.className="save-flash";
-  flash.innerHTML='<div class="save-flash-text">◈ DATA SAVED ◈</div>';
+flash.innerHTML='<div class="save-flash-text" style="white-space:nowrap">◇ DATA SAVED ◇</div>';
   document.body.appendChild(flash);
   setTimeout(()=>flash.remove(),1200);
   btn.textContent="◈ SAVED ◈";
